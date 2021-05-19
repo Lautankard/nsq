@@ -43,7 +43,6 @@ func (p *program) Init(env svc.Environment) error {
 
 func (p *program) Start() error {
 	opts := nsqd.NewOptions()
-
 	flagSet := nsqdFlagSet(opts)
 	flagSet.Parse(os.Args[1:])
 
@@ -65,7 +64,7 @@ func (p *program) Start() error {
 	cfg.Validate()
 
 	options.Resolve(opts, flagSet, cfg)
-
+	fmt.Printf("opts %+v\n", opts)
 	nsqd, err := nsqd.New(opts)
 	if err != nil {
 		logFatal("failed to instantiate nsqd - %s", err)

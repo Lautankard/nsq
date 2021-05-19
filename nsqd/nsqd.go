@@ -82,6 +82,7 @@ func New(opts *Options) (*NSQD, error) {
 		cwd, _ := os.Getwd()
 		dataPath = cwd
 	}
+	fmt.Println(dataPath)
 	if opts.Logger == nil {
 		opts.Logger = log.New(os.Stderr, opts.LogPrefix, log.Ldate|log.Ltime|log.Lmicroseconds)
 	}
@@ -579,21 +580,22 @@ func (n *NSQD) channels() []*Channel {
 //
 // 	1 <= pool <= min(num * 0.25, QueueScanWorkerPoolMax)
 //
+//根据channels的总数量分配相对应的协程去处理message
 func (n *NSQD) resizePool(num int, workCh chan *Channel, responseCh chan bool, closeCh chan int) {
-	idealPoolSize := int(float64(num) * 0.25)
+	idealPoolSize := int(float64(num) * 0.25) //获取需要启用的携程数量
 	if idealPoolSize < 1 {
 		idealPoolSize = 1
 	} else if idealPoolSize > n.getOpts().QueueScanWorkerPoolMax {
 		idealPoolSize = n.getOpts().QueueScanWorkerPoolMax
 	}
 	for {
-		if idealPoolSize == n.poolSize {
+		if idealPoolSize == n.poolSize { //需要的协程数和开启的一直，则不开启新的
 			break
-		} else if idealPoolSize < n.poolSize {
+		} else if idealPoolSize < n.poolSize { //需要的协程数小于开启的，则关闭一个协程
 			// contract
 			closeCh <- 1
 			n.poolSize--
-		} else {
+		} else { //开启一个新的处理协程
 			// expand
 			n.waitGroup.Wrap(func() {
 				n.queueScanWorker(workCh, responseCh, closeCh)

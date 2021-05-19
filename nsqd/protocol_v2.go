@@ -63,7 +63,16 @@ func (p *protocolV2) IOLoop(c protocol.Client) error {
 
 		// ReadSlice does not allocate new space for the data each request
 		// ie. the returned slice is only valid until the next call to it
-		line, err = client.Reader.ReadSlice('\n')
+		/*协议格式为
+			type Command struct {
+				Name   []byte
+				Params [][]byte
+				Body   []byte
+		}
+		name param1 param2 param3...(\n)
+		body
+		*/
+		line, err = client.Reader.ReadSlice('\n') //读取name 和 params
 		if err != nil {
 			if err == io.EOF {
 				err = nil
@@ -84,7 +93,7 @@ func (p *protocolV2) IOLoop(c protocol.Client) error {
 		p.nsqd.logf(LOG_DEBUG, "PROTOCOL(V2): [%s] %s", client, params)
 
 		var response []byte
-		response, err = p.Exec(client, params)
+		response, err = p.Exec(client, params) //根据指令名字进行不同的处理
 		if err != nil {
 			ctx := ""
 			if parentErr := err.(protocol.ChildErr).Parent(); parentErr != nil {
@@ -182,7 +191,7 @@ func (p *protocolV2) Exec(client *clientV2, params [][]byte) ([]byte, error) {
 		return p.RDY(client, params)
 	case bytes.Equal(params[0], []byte("REQ")):
 		return p.REQ(client, params)
-	case bytes.Equal(params[0], []byte("PUB")):
+	case bytes.Equal(params[0], []byte("PUB")): //订阅处理流程
 		return p.PUB(client, params)
 	case bytes.Equal(params[0], []byte("MPUB")):
 		return p.MPUB(client, params)
@@ -297,7 +306,7 @@ func (p *protocolV2) messagePump(client *clientV2, startedChan chan bool) {
 			}
 
 			msgTimeout = identifyData.MsgTimeout
-		case <-heartbeatChan:
+		case <-heartbeatChan: //定时发送心跳
 			err = p.Send(client, frameTypeResponse, heartbeatBytes)
 			if err != nil {
 				goto exit
@@ -321,7 +330,7 @@ func (p *protocolV2) messagePump(client *clientV2, startedChan chan bool) {
 				goto exit
 			}
 			flushed = false
-		case msg := <-memoryMsgChan:
+		case msg := <-memoryMsgChan: //从Channel中接受内存消息
 			if sampleRate > 0 && rand.Int31n(100) > sampleRate {
 				continue
 			}

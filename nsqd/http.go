@@ -163,12 +163,13 @@ func (s *httpServer) getExistingTopicFromQuery(req *http.Request) (*http_api.Req
 }
 
 func (s *httpServer) getTopicFromQuery(req *http.Request) (url.Values, *Topic, error) {
+	fmt.Println("getTopicFromQuery-RawQuery: ", req.URL.RawQuery)
 	reqParams, err := url.ParseQuery(req.URL.RawQuery)
 	if err != nil {
 		s.nsqd.logf(LOG_ERROR, "failed to parse request params - %s", err)
 		return nil, nil, http_api.Err{400, "INVALID_REQUEST"}
 	}
-
+	fmt.Println("getTopicFromQuery: ", reqParams)
 	topicNames, ok := reqParams["topic"]
 	if !ok {
 		return nil, nil, http_api.Err{400, "MISSING_ARG_TOPIC"}

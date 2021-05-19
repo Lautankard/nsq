@@ -2,6 +2,7 @@ package nsqd
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -57,6 +58,7 @@ func NewTopic(topicName string, nsqd *NSQD, deleteCallback func(*Topic)) *Topic 
 		idFactory:         NewGUIDFactory(nsqd.getOpts().ID),
 	}
 	// create mem-queue only if size > 0 (do not use unbuffered chan)
+	fmt.Printf("配置%+v\n", nsqd.getOpts())
 	if nsqd.getOpts().MemQueueSize > 0 {
 		t.memoryMsgChan = make(chan *Message, nsqd.getOpts().MemQueueSize)
 	}
@@ -221,6 +223,7 @@ func (t *Topic) PutMessages(msgs []*Message) error {
 	return nil
 }
 
+//将消息先放到channle，channel满了就写到磁盘，这里怎么保证取的消息有序性
 func (t *Topic) put(m *Message) error {
 	select {
 	case t.memoryMsgChan <- m:
@@ -265,11 +268,11 @@ func (t *Topic) messagePump() {
 		break
 	}
 	t.RLock()
-	for _, c := range t.channelMap {
+	for _, c := range t.channelMap { //获取所有的Channels
 		chans = append(chans, c)
 	}
 	t.RUnlock()
-	if len(chans) > 0 && !t.IsPaused() {
+	if len(chans) > 0 && !t.IsPaused() { //获取topic维护的消息chan和读取后端存储的chan
 		memoryMsgChan = t.memoryMsgChan
 		backendChan = t.backend.ReadChan()
 	}

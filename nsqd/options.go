@@ -3,6 +3,7 @@ package nsqd
 import (
 	"crypto/md5"
 	"crypto/tls"
+	"fmt"
 	"hash/crc32"
 	"io"
 	"log"
@@ -94,7 +95,7 @@ func NewOptions() *Options {
 	h := md5.New()
 	io.WriteString(h, hostname)
 	defaultID := int64(crc32.ChecksumIEEE(h.Sum(nil)) % 1024)
-
+	fmt.Println("hostname: ", hostname, " defaultID: ", defaultID)
 	return &Options{
 		ID:        defaultID,
 		LogPrefix: "[nsqd] ",
@@ -113,7 +114,7 @@ func NewOptions() *Options {
 		HTTPClientConnectTimeout: 2 * time.Second,
 		HTTPClientRequestTimeout: 5 * time.Second,
 
-		MemQueueSize:    10000,
+		MemQueueSize:    0,
 		MaxBytesPerFile: 100 * 1024 * 1024,
 		SyncEvery:       2500,
 		SyncTimeout:     2 * time.Second,
